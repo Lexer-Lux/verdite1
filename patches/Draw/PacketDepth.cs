@@ -25,7 +25,6 @@ public static class PacketDepth
     {
         EnsureRange();
         ref var r = ref GtePacketDepth.Slot(pkt);
-        r.Material = InteractionGlint.Apply(0);
         uint code = mem.ReadU8(pkt + 7u);
         bool quad = (code & 0x08u) != 0u;
         // a vertex is xy, then uv when textured, then the next colour when Gouraud
@@ -47,6 +46,18 @@ public static class PacketDepth
     {
         EnsureRange();
         GtePacketDepth.Slot(pkt).Cmd = 0;
+    }
+
+    /// <summary>A native billboard's real constant view depth. Match the same
+    /// packet identity words as Face; never borrow a previous packet's material.</summary>
+    public static void Sprite(IMemory mem, uint pkt, float z)
+    {
+        if (!On) return;
+        EnsureRange();
+        GtePacketDepth.Slot(pkt) = new() {
+            Cmd=mem.ReadU32(pkt+4), Xy0=mem.ReadU32(pkt+8), XyLast=mem.ReadU32(pkt+20),
+            Z0=z, Z1=z, Z2=z, Z3=z, Model=true, NotRect=true
+        };
     }
 
     static float Z(PSMemory mem, uint p) => mem.ReadU16(p + 4u);

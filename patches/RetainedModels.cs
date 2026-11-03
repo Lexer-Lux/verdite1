@@ -381,7 +381,7 @@ public static class RetainedModels
             Rgbc = m.ReadU32(cached ? CachedRgbc : TexturedRgbc) & 0xFFFFFF,
         };
         PlaceWorld(ref ins, view);
-        ins.Material = InteractionGlint.Apply((byte)ins.Material);
+        InteractionGlint.Submitted(m, ins, list, (int)count);
         if (GpuWorld.Check) CheckModel(m, ins, list, (int)count, morph);
         RetainedScene.AddInstance(ins);
         if (mesh.Semi) AddSemiFaces(m, mesh, bias);

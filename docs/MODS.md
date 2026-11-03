@@ -106,17 +106,42 @@ tick schedule from a New Game, removed afterwards) and the shell:
 
 AutoReload.HasLastSave and TryReloadLastSave expose the existing native load
 for a separate choice mod. The explicit call does not depend on the automatic
-reload checkbox, but still requires game overlay, dead state255 and HP0. It
+reload checkbox, but still requires game overlay, dead state 255 and HP 0. It
 never saves. Ordinary revival retains priority in automatic mode when flag
-`0x8009DDB7` is1 and inventory47 (`0x800652D7`) is nonzero. That item is Dragon
+`0x8009DDB7` is 1 and inventory 47 (`0x800652D7`) is nonzero. That item is Dragon
 King Grass Fruit in this game.
 
-The external Better Crystals mod intercepts respawn `0x800154B0`, RA`0x8001869C`,
+The external Better Crystals mod intercepts respawn `0x800154B0`, RA `0x8001869C`,
 before the native fruit decrement. Its English prompt uses native frame,
 font, cursor, pad and presentation routines. Private actual-event checks observed
-one-fruit native revival, explicit reload with automaticoff, saved count/gold
+one-fruit native revival, explicit reload with automatic off, saved count/gold
 restoration, unavailable save, failed-header retry without consumption, changed
 binding labels and disable-while-waiting fallback. Japanese-font support is not
 implemented; that path safely retains native revival. The post-load rearm can
 publish restored state before TryReloadLastSave finishes; verification waits for
-Reloads to increment as well as observing living state0.
+Reloads to increment as well as observing living state 0.
+
+## Interaction sprite submission
+
+InteractionGlint scopes actual SubmitInteraction records and asks the owning
+source mod for White/Red/None. It no longer changes an object's surface material.
+Retained vertices provide posed camera-space bounds. Packet models provide their
+actual projected corners and unsigned cached depths through one AddPrim observer
+at `0x80054290`, exact model callers RA `0x8001D6D4` and `0x8001DDBC`.
+
+The small pixel star is placed in front of the closest object surface. Retained
+stars use AddMainModel with unlit colors, culling off and no-shadow flags.
+AddDynamic is insufficient: this fork's main retained view draws the static
+range and the main-model groups, while dynamic frame triangles serve other
+passes. A rendered enabled/disabled comparison caught that missing main-view
+submission despite valid counters.
+
+Native stars are 29 POLY_F4 packets (696 bytes), linked just in front of the
+closest actual object face. They are deferred until native Present, after the
+game's geometry and HUD allocation, and written only when the whole star fits.
+Pending state is bounded and verifies frame, area, arena descriptor/start and
+ordering table; disable, load and overlay changes invalidate it. The optional
+packet Z-buffer receives true sprite depth. CPU/GTE state is preserved.
+
+InteractionHistory also emits Opened for an actual reciprocal hinged-door
+partner, rather than depending on that partner being drawn during animation.

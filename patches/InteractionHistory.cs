@@ -204,7 +204,19 @@ public static class InteractionHistory
     public static void AfterAction(CpuContext c, IMemory m)
     {
         if (_actionRecord != 0 && _oldAction == 255 && m.ReadU8(_actionRecord + 0x28) <= 2)
+        {
             Record(m, _actionRecord, Outcome.Opened);
+            // The primary animates both leaves. Record the actual reciprocal
+            // partner now, even if that leaf is never rendered while opening.
+            if (Describe(m, _actionRecord, out var id, out byte kind) && kind == 0)
+            {
+                byte partnerIndex = m.ReadU8(_actionRecord + 0x21);
+                uint partner = Objects + 44u * partnerIndex;
+                if (partnerIndex < Count && Describe(m, partner, out _, out byte partnerKind)
+                    && partnerKind == 1 && m.ReadU8(partner + 0x21) == id.Index)
+                    Record(m, partner, Outcome.Opened);
+            }
+        }
         _actionRecord = 0;
     }
     static void ResetExtensions()
