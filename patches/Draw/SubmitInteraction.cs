@@ -19,7 +19,12 @@ public static class SubmitInteraction
     public static readonly Literal R = new(typeof(SubmitInteraction), "interaction objects", "SUBMIT_INTERACTION", 0x8001EBB8, Run,
         "Draws one interaction record (44 bytes at 0x8006EDE0): pickups, doors, props.");
 
-    static void Replace(Action<CpuContext, IMemory> orig, CpuContext c, IMemory m) => R.Replace(orig, c, m);
+    static void Replace(Action<CpuContext, IMemory> orig, CpuContext c, IMemory m)
+    {
+        byte previous = InteractionGlint.Begin(m, c.A0);
+        try { R.Replace(orig, c, m); }
+        finally { InteractionGlint.End(previous); }
+    }
 
     static void Run(CpuContext c, PSMemory mem)
     {

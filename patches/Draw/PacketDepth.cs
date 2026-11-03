@@ -25,6 +25,7 @@ public static class PacketDepth
     {
         EnsureRange();
         ref var r = ref GtePacketDepth.Slot(pkt);
+        r.Material = InteractionGlint.Apply(0);
         uint code = mem.ReadU8(pkt + 7u);
         bool quad = (code & 0x08u) != 0u;
         // a vertex is xy, then uv when textured, then the next colour when Gouraud

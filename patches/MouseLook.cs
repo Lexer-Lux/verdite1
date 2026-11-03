@@ -64,6 +64,6 @@ public static class MouseLook
     {
         if (c.RA != StageASite) return;
         Memory = m;
-        c.V0 = Analog.Tick(m, ControlDefaults.Read((ushort)c.V0));
+        c.V0 = Analog.Tick(m, ControlDefaults.Read(m, (ushort)c.V0));
     }
 }

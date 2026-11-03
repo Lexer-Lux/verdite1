@@ -49,7 +49,8 @@ walk and a turn, and by reading the code that uses each word:
 
 A New Game starts at (31000, -11500, 4000), yaw 0, in area 1. Holding Up for a
 second walks about 4000 units along the facing; holding Left for half a second
-raised yaw by 280. The New Game set-up at `0x80015280` writes both halves of each
+raised yaw by 280. The New Game routine starts at `0x800151CC`; its instruction
+at `0x80015280` writes both halves of each
 HP and MP pair, and copies `0x800650B4`, `0x800650B6` and `0x800650B8` into
 `0x800A07A2`, `0x800A07A4` and `0x800A0784`: base STR, base MAG and the EXP for
 level 2 (20, 20, 50; the table below).
@@ -67,18 +68,18 @@ there where it says so.
 | `0x800A0798`, `0x800A079C` | u16 | weapon and magic charge gauges, 5000 full; a cast needs 5000 |
 | `0x800A079E`, `0x800A07A0` | u16 | STR and MAG practice: +1 at 100 (`func_80015F28`, `func_80015FC0`) |
 | `0x800A07A2`, `0x800A07A4` | u16 | base STR and MAG (20 and 20 at a New Game) |
-| `0x800A07A6`, `0x800A07A8` | u16 | adjusted STR and MAG (STR -20 while poisoned), derived |
-| `0x800A07AA` | u16 | condition bits: 0 poison, 3 slows the walk and turn |
+| `0x800A07A6`, `0x800A07A8` | u16 | adjusted STR and MAG (STR -20 while cursed), derived |
+| `0x800A07AA` | u16 | condition bits: 0 curse, 1 darkness, 2 poison, 3 slows the walk and turn |
 | `0x800A07AC` | u32 | gold, 150 at a New Game |
 | `0x800A07B0`–`0x800A07B8`, `0x800A07BC`–`0x800A07C6` | 5, 6 × u16 | ratings the recompute sums from the equipment; meanings unresolved |
-| `0x800A07C8`–`0x800A07D2` | 6 × s16 | condition and effect timers, -1 off; `0x7C8` poison (600 on a poisoning hit), `0x7CA` set by a hit's flag bit 2 |
+| `0x800A07C8`–`0x800A07D2` | 6 × s16 | condition and effect timers, -1 off; `0x7C8` curse, `0x7CA` darkness, `0x7CC` poison |
 | `0x800A07DC` | u8 | held spell, 0xFF none; `0x800A07E0` points at its record |
 | `0x800A07E4` | u8 | weapon; `0x800A07E8` points at `0x8009FF10 + 44·id` |
 | `0x800A0810`–`0x800A0815` | 6 × u8 | armour, 0xFF empty; record pointers at `0x7FC + 4·n` = `0x800A00DC + 28·id` |
 | `0x800A084A`–`0x800A084D` | 4 × u8 | cell z, x and the last cell z, x ("Changing areas") |
 
-- `func_80016058(s16 gain)`, the level-up: EXP += gain (cap 99999); if EXP ≥
-  next, **one** level (level < 255): max HP, max MP, the STR and MAG gains and
+- `func_80016058(s16 gain)`, the level-up: EXP += gain (cap 99999); while EXP ≥
+  next, gain levels (level < 255): max HP, max MP, the STR and MAG gains and
   the next threshold from the 12-byte table at `0x800650B0` for levels below 40,
   and the last two entries' difference above; caps 9999 and 999. Then the
   recompute and a sound. HP and MP are not refilled.
@@ -211,7 +212,7 @@ delegate, so each hook on it still fires.
 | Compass | `func_8001F8B0` | model `0x15` |
 | HudSprites | `func_8001F9D4(0x80055C5C)` | each record (0xE bytes, to a `0xFF`) with `+0 == 1` through `func_8001E480`, under the light colours at `0x80095060..64` |
 | LightHud | `SetLightMatrix(0x80056008)` | |
-| HudSetup | `func_8001FAFC` | the selected item's display, a state machine at `u8[0x80095088]` (below) |
+| HudSetup | `func_8001FAFC` | the native notification display, a state machine at `u8[0x80095088]` (below) |
 | *HUD models* | | `RotMatrix` of (`u16[0x8009508A]`, 0, 0) with the translation (0, 160, 200), and each of the records at `0x80055D20`, `0x80055D2E` and four from `0x80055D3C` with `+0 == 1` drawn by `func_8001E230(rec + 2, 0, 0)`, under the colours at `0x80095066` and `0x8009506A` |
 | Models | `func_8001F218` | the model walk ("Creatures, objects and their clips" in `docs/SMOOTHING.md`) |
 | Arm | `func_8001F798` | |
@@ -221,11 +222,14 @@ delegate, so each hook on it still fires.
 The HUD-model loop is the routine's one loop, and the recompiled body polls
 interrupts at its head; the C# polls there too.
 
-**The selected item's display** (`func_8001FAFC`): state 0 waits for an item in
-the selected slot (`u8[0x8009506E + u8[0x80095086]]`, `0xFF` empty); states 2 and
+**The notification display** (`func_8001FAFC`): `func_8001FA44` enqueues one of
+32 native messages in the eight-slot ring at `0x8009506E` (u16 payloads at
+`0x80095076`, tail/head at `0x80095086/87`). These are messages such as LOCKED,
+not the selected inventory item. State 0 waits for a nonempty notification in
+the tail slot (`0xFF` empty); states 2 and
 3 turn it in, stepping `u16[0x8009508A]` and the countdown `u8[0x80095089]` (15)
 **on every renderer call**, so under pacing it animates at the drawn rate (not yet
-held to the tick). Item `0x13` shows four digit models (`func_8002ADF8`,
+held to the tick). Message `0x13` is GOLD and shows four digit models (`func_8002ADF8`,
 `func_8001FAE4`) instead of one; the slots are rewritten from the game's own state
 each tick, so a `poke` there does not stick.
 
@@ -283,7 +287,7 @@ after `off`, and the player does not move.
 - **Pose slots.** The blender `func_800205D4` takes a slot through
   `func_8001AAB0` → `func_800502DC`, the BIOS `malloc` (A(0x33)). There are 12
   slots of 0x14 bytes from `0x800910C0`, each with its block pointer at +0xC.
-- **The selected item's display** (`func_8001FAFC`). The state is
+- **The notification display** (`func_8001FAFC`). The state is
   `u8[0x80095088]` (0, 2, 3), the countdown `u8[0x80095089]` (from 15), and the
   angle `u16[0x8009508A]` (+0x80 a step, up to 0x200).
 - **The vertex cache** at `0x800911B0`: 8 bytes a vertex, SXY, then SZ at +4 and

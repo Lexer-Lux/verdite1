@@ -91,7 +91,9 @@ public static class PadLayout
         if (now == _keysAt) return _keys;
         _keysAt = now;
         var k = ConfigManager.Game.Keys;
-        _keys = (ushort)(Down(k.Triangle, Triangle) | Down(k.Circle, Circle) | Down(k.Cross, Cross) | Down(k.Square, Square));
+        var second = ConfigManager.Game.Keys2;
+        _keys = (ushort)(Down(k.Triangle, Triangle) | Down(k.Circle, Circle) | Down(k.Cross, Cross) | Down(k.Square, Square)
+                      | Down(second.Triangle, Triangle) | Down(second.Circle, Circle) | Down(second.Cross, Cross) | Down(second.Square, Square));
         return _keys;
     }
 

@@ -42,12 +42,17 @@ rejected. This diagnostic server is opt-in, bound to loopback, as before.
 
 ## Controls
 
-**Apply Lexer's controls** in F1 → Testing writes ordinary input settings:
+First launch and **Run control setup again** in F1 → Testing offer:
 
-- RT/RB attack; LT/LB and Square use the equipped spell or item.
-- Cross/E interact; Circle/Left Shift held runs at twice movement speed.
-- Triangle/Tab opens the menu; Q uses the equipped item or spell, including
-  the map. Cross confirms and Circle backs out of menus. Start/Select remain.
+- **Keep current bindings**, selected initially; opening setup changes nothing.
+- **Classic Controls**, the exact baseline upstream port bindings.
+- **Modern Controls**: RT/RB attack, LT/LB cast, Cross/E interact, and
+  Circle/Left Shift held run. Original Square attack, Triangle/Q item or spell,
+  Select/Tab menu, and menu confirm/back actions stay available.
+
+Both frontends read `content/config/controls.json`; there is no second preset
+table in Lexeditor. Applying a preset replaces custom bindings only after an
+explicit confirmation. Other native settings and memory-card paths remain.
 
 Run uses the otherwise unused R3 action. In gameplay, a held R3 suppresses
 Circle's overlapping menu-back action and scales the distance passed to the
@@ -69,9 +74,10 @@ use a root `mod.json` and C# source, native hooks and declared dependencies.
 Compatibility of arbitrary hook replacements must be tested per mod.
 
 The RecompOne subtree equals commit
-`a65dea7487dd47758f102c6fd0e48a93efd43d72` in
-`Lexer-Lux/verdite-recompone` (`codex/kf1-hidden-runtime`). The generic changes
-are the configurable mod root and opt-in `RECOMPONE_HIDDEN=1` window creation
+`926e00e36ac231fe059a8eb889db237bf6bf6fe2` in
+`Lexer-Lux/verdite-recompone` (`codex/kf1-mod-hud-runtime`). The generic changes
+are a full-display HUD render event, configurable mod root and opt-in
+`RECOMPONE_HIDDEN=1` window creation
 for isolated renderer checks. Other ports' pinned runtimes are unchanged.
 
 ## Measured verification
@@ -85,8 +91,22 @@ In an isolated hidden OpenGL session with private memory cards:
 - View distance 24 and fade off survived a separate process restart.
 - A short forward movement measured 1,440 units walking and 2,766 running.
 - The existing Debug Tools source mod compiled and loaded directly from an
-  external library, with 14 registered hooks. No new gameplay mod was made.
+  external library, with 14 registered hooks.
 
-These are runtime measurements, not visual gameplay acceptance. Physical
+The separately requested Forget Me Not, Better Sprint, XP Bar and Better Poison
+live in the user's ordinary mod library. The port exposes removable interaction,
+save-extension, glint, native notification and sprint policy APIs, and contains
+no enabled gameplay mod. Their policies and settings stay with those mods.
+
+Hidden rendered checks observed the native first-run/rerun choices, absolute
+bottom XP bar and reversible removal, English and Japanese poison/cure text,
+green poison in both renderers and red restored on disable. Native interactions
+reported locked chest, emptied chest and successful paired door opening.
+The bounded sidecar restored the saved locked state on native load, including
+a load in a new process. At a configured drain of 100% full gauge per second,
+sprint consumed weapon power while MP stayed at 20; disabling the mod restored
+zero drain. Default drain is zero because retail has no sprint stamina pool.
+
+These are isolated engine checks, not physical-controller acceptance. Physical
 controller feel, the look of distant geometry and menu usability still need
 the player's acceptance.

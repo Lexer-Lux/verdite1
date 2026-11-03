@@ -18,6 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="tools/RecompOne/RecompOne.Runtime/RecompOne.Runtime.csproj" />
+        <Content Include="config/controls.json" Link="content/config/controls.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
 
     <!--
