@@ -58,6 +58,7 @@ public static class AgentServer
     static readonly string[] HelpCommands =
     [
         "state - the player/area snapshot as JSON",
+        "distance [<cells: 0 or 8..30> <smooth fade: 0|1>] - read or save the independent native distance settings",
         "press <button> [holdMs=150] - press a pad button; one press at a time, replaced by the next",
         "pad <button> [holdMs=150] - press a button as the controller does, through the button layout's remap",
         "peek <addr> [bytes=16] - read guest memory, hex",
@@ -194,7 +195,7 @@ public static class AgentServer
 
         switch (cmd.Name)
         {
-            case "state" or "press" or "pad" or "help" or "peek" or "dump" or "poke" or "aspect" or "view" or "warp" or "stick":
+            case "state" or "press" or "pad" or "help" or "peek" or "dump" or "poke" or "aspect" or "view" or "warp" or "stick" or "distance":
                 Enqueue(_fast, cmd);
                 break;
             default:
@@ -238,6 +239,7 @@ public static class AgentServer
         "poke" => DoPoke(cmd.Arg1, cmd.Arg2),
         "aspect" => Widescreen.Shell(cmd.Arg1),
         "view" => DoView(cmd.Args),
+        "distance" => SceneFeatures.DistanceCommand(cmd.Args),
         "warp" => Warp.Request(cmd.Args),
         "stick" => DoStick(cmd.Args),
         _ => Err($"unknown command '{cmd.Name}'; try help"),

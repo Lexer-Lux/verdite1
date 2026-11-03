@@ -38,6 +38,7 @@ Kf1.KeyLayout.Install();
 // its own. See "The button layout" in docs/INPUT.md.
 Kf1.PadLayout.Configure(Environment.GetEnvironmentVariable("KF1_PAD_LAYOUT"));
 Kf1.PadLayout.Install();
+Kf1.ControlDefaults.Install();
 
 // libapi's interrupt-callback table, per executable: the table InterruptCallback
 // indexes by irq*4. See "The interrupt-callback table" in docs/RECOMPILATION.md.

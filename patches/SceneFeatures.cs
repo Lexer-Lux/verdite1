@@ -227,13 +227,17 @@ public static class SceneFeatures
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Draws the world past the game's distance. Needs the retained renderer (Renderer: Retained).");
         ImGui.BeginDisabled(!far);
         ImGui.SetNextItemWidth(240);
-        if (ImGui.SliderFloat("Render distance (cells)", ref reach, 8, RenderDistance.MaxCells, "%.0f")) RenderDistance.SetCells(reach);
-        if (ImGui.IsItemDeactivatedAfterEdit()) KeepFloat(RenderKey, reach);
+        if (ImGui.InputFloat("View distance (cells)", ref reach, 1, 5, "%.1f"))
+        {
+            RenderDistance.SetCells(Math.Clamp(reach, 8, RenderDistance.MaxCells));
+            KeepFloat(RenderKey, RenderDistance.Cells);
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("8 to 30. Extends the retained world's reach; the original stencil remains. The game's fog is black beyond about 9.17.");
         ImGui.EndDisabled();
 
         bool fade = RenderDistance.FadeCells > 0;
         float band = fade ? RenderDistance.FadeCells : 3;
-        if (ImGui.Checkbox("Fade in at the edge of the view", ref fade))
+        if (ImGui.Checkbox("Smooth distance fade", ref fade))
         {
             RenderDistance.SetFade(fade ? band : 0);
             KeepFloat(FadeKey, fade ? band : 0);
@@ -244,5 +248,31 @@ public static class SceneFeatures
         if (ImGui.SliderFloat("Fade band (cells)", ref band, 0.5f, RenderDistance.MaxFade, "%.1f")) RenderDistance.SetFade(band);
         if (ImGui.IsItemDeactivatedAfterEdit()) KeepFloat(FadeKey, band);
         ImGui.EndDisabled();
+    }
+
+    /// <summary>Game-thread command channel: the same state and persisted keys as the widgets.</summary>
+    public static string DistanceCommand(string[] args)
+    {
+        if (args.Length != 0)
+        {
+            if (args.Length != 2 ||
+                !float.TryParse(args[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float cells) ||
+                !float.IsFinite(cells) || (cells != 0 && (cells < 8 || cells > RenderDistance.MaxCells)) ||
+                args[1] is not ("0" or "1"))
+                return AgentServer.Err("distance [<cells: 0 or 8..30> <smooth fade: 0|1>]");
+            RenderDistance.SetCells(cells);
+            RenderDistance.SetFade(args[1] == "1" ? DefaultFade : 0);
+            Rt.View.SetFloat(RenderKey, RenderDistance.Cells);
+            Rt.View.SetFloat(FadeKey, RenderDistance.FadeCells);
+            Rt.SaveView();
+        }
+        var frame = RetainedScene.Find(RetainedScene.Serial);
+        return System.Text.Json.JsonSerializer.Serialize(new {
+            ok = true, cells = RenderDistance.Cells, smoothFade = RenderDistance.FadeCells > 0,
+            fadeBand = RenderDistance.FadeCells, enhancementDistance = GteDepth.PlainDepth / Cell,
+            fog = Fog, maximum = RenderDistance.MaxCells, renderer = GpuWorld.Setting,
+            frameEdge = frame?.FadeEdge, frameBand = frame?.FadeBand,
+            gatedCells = frame?.MainHalves.Count(value => value != 0)
+        });
     }
 }

@@ -353,6 +353,7 @@ public sealed class TestingSection : ISettingsSection
 
         ImGui.SeparatorText("Controller");
         ButtonLayout();
+        ControlDefaults.Draw();
 
         ImGui.SeparatorText("Mouse");
         Toggle("Mouse look", K(Mouse.OnKey),

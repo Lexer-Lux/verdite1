@@ -2,6 +2,10 @@
 
 ***
 
+This is **Lexer's King's Field I fork**, based on the existing `archive/recomp`
+port for the Japanese 1994 game. See [Lexeditor setup and measured changes](docs/LEXEDITOR.md)
+for the independent view-distance/fade settings, controls and runtime pin.
+
 [![Release](https://img.shields.io/github/v/release/Voicedrew11/verdite1)](https://github.com/Voicedrew11/verdite1/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Voicedrew11/verdite1/total)](https://github.com/Voicedrew11/verdite1/releases)
 [![Discord](https://img.shields.io/discord/1553561882843947149?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/R4EKCs8RWH)
