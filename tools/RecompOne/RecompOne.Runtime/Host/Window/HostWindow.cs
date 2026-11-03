@@ -7,6 +7,7 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
 using RecompOne.Runtime.Config;
 using RecompOne.Runtime.Diagnostics;
+using RuntimeEvents = RecompOne.Runtime.Events;
 using RecompOne.Runtime.Hardware;
 using RecompOne.Runtime.Host.Window;
 
@@ -1190,6 +1191,11 @@ public static class HostWindow
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         gl.Viewport(0, 0, (uint)fbDef.X, (uint)fbDef.Y);
         var imgui = Profiler.Begin(Profiler.ImGuiRender);
+        if (RuntimeEvents.Event.HasAnyListeners<RuntimeEvents.HudRenderEvent>())
+        {
+            var size = ImGui.GetIO().DisplaySize;
+            RuntimeEvents.Event.Dispatch(new RuntimeEvents.HudRenderEvent(size.X, size.Y));
+        }
         _imgui.Render();
         Profiler.End(imgui);
     }
