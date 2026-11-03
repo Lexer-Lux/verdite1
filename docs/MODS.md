@@ -145,3 +145,18 @@ packet Z-buffer receives true sprite depth. CPU/GTE state is preserved.
 
 InteractionHistory also emits Opened for an actual reciprocal hinged-door
 partner, rather than depending on that partner being drawn during animation.
+
+Container outcomes require the complete dispatcher call, not selection alone.
+Its selector iterates again until -1, so a bounded set retains each admitted
+container. Hinged containers additionally require the original facing helper
+`0x80014F6C`, RA `0x800351F0`, to accept them. Only a completed unlocked empty
+search emits Opened; declined or full pickups still contain loot.
+
+Actual key use `0x80018054` emits Unlocked only when one of its original key
+cases changes an eligible lock byte to 255. Item-container kind 9 is excluded:
+its +0x20 is loot, not a lock. Pending key/search work clears on restore/reset.
+The blocked hinged-partner branch returns before reciprocal +0x21 links exist.
+DoorPaired therefore publishes only the exact primary/partner observed in that
+native blocked branch. A source mod may persist that proven relationship with
+its state, clearing the mate's stale red after a real unlock without guessing
+nearby pairs. Already-opened history remains resolved.

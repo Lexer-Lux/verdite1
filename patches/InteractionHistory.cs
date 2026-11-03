@@ -17,9 +17,10 @@ namespace Kf1;
 public static class InteractionHistory
 {
     public enum Kind : byte { HingedDoor, HingedDoorPartner, LiftDoor, HingedContainer = 8, ItemContainer = 9 }
-    public enum Outcome : byte { Selected, Locked, Opened }
+    public enum Outcome : byte { Selected, Locked, Opened, Unlocked }
     public readonly record struct ObjectId(byte Area, byte Index);
     public static event Action<ObjectId, Outcome>? Changed;
+    public static event Action<ObjectId, ObjectId>? DoorPaired;
     public static event Action? GameRestored;
     const uint Objects = 0x8006EDE0, Definitions = 0x8006E8E0, Grid = 0x8009A748;
     public const int PersistentObjectsPerArea = 160;
@@ -27,6 +28,12 @@ public static class InteractionHistory
     static uint _selected, _neighbor, _actionRecord;
     static byte _oldAction;
     static bool _dispatch;
+    static byte _dispatchArea;
+    // 1 selected; 2 native container branch admitted (including its facing check).
+    static readonly byte[] ContainerSelections = new byte[Count], ContainerTypes = new byte[Count];
+    sealed record KeyCapture(byte Area, byte[] Types, byte[] Locks);
+    static readonly KeyCapture?[] KeyFrames = new KeyCapture?[4];
+    static int _keyDepth;
     static int _bank = -1;
     static uint _payload;
     static string? _payloadDigest;
@@ -44,6 +51,8 @@ public static class InteractionHistory
             (0x800315C4, null, nameof(AfterSelection)),
             (0x8001FA44, nameof(BeforeNotification), null),
             (0x80031784, nameof(BeforeAction), nameof(AfterAction)),
+            (0x80014F6C, null, nameof(AfterContainerFacing)),
+            (0x80018054, nameof(BeforeUseItem), nameof(AfterUseItem)),
             (0x8002B73C, nameof(BeforeSave), nameof(AfterSave)),
             (0x8002BEB0, nameof(BeforeLoad), nameof(AfterLoad)),
             (0x800502AC, nameof(BeforeWrite), null),
@@ -166,8 +175,29 @@ public static class InteractionHistory
                 Invoke("interaction observer", () => handler(id, state));
     }
 
-    public static void BeforeDispatch(CpuContext c, IMemory m) { _dispatch = true; _selected = _neighbor = 0; }
-    public static void AfterDispatch(CpuContext c, IMemory m) { _dispatch = false; _selected = _neighbor = 0; }
+    public static void BeforeDispatch(CpuContext c, IMemory m)
+    {
+        _dispatch=true; _selected=_neighbor=0; _dispatchArea=m.ReadU8(0x800A078A);
+        Array.Clear(ContainerSelections); Array.Fill(ContainerTypes,(byte)255);
+    }
+    public static void AfterDispatch(CpuContext c, IMemory m)
+    {
+        try
+        {
+            if(!_dispatch || m.ReadU8(0x800A078A)!=_dispatchArea)return;
+            // The iterator ends with V0=-1 and clears _selected. Keep the
+            // bounded set of admitted containers until the entire call returns.
+            for(uint index=0;index<Count;index++)
+            {
+                uint record=Objects+44*index;
+                if(ContainerSelections[index]!=2 || m.ReadU8(record)!=ContainerTypes[index]
+                    || !Describe(m,record,out _,out byte kind) || kind is not (8 or 9)
+                    || (kind==8 && m.ReadU8(record+0x20)!=255) || HasLoot(m,record))continue;
+                Record(m,record,Outcome.Opened);
+            }
+        }
+        finally { _dispatch=false; _selected=_neighbor=0; Array.Clear(ContainerSelections); }
+    }
     public static void AfterSelection(CpuContext c, IMemory m)
     {
         if (_dispatch && c.RA == 0x80035164)
@@ -175,9 +205,23 @@ public static class InteractionHistory
             _selected = c.V0 < Count ? Objects + 44 * c.V0 : 0;
             _neighbor = 0;
             Record(m, _selected, Outcome.Selected);
+            if(Describe(m,_selected,out var id,out byte kind) && kind is 8 or 9)
+            {
+                ContainerSelections[id.Index]=(byte)(kind==9?2:1);
+                ContainerTypes[id.Index]=m.ReadU8(_selected);
+            }
         }
         else if (_dispatch && c.RA == 0x8003546C)
             _neighbor = c.V0 < Count ? Objects + 44 * c.V0 : 0;
+    }
+    public static void AfterContainerFacing(CpuContext c,IMemory m)
+    {
+        // Original hinged-container branch calls the angle helper here, before
+        // checking its first item or opening its lid. Wrong-facing selection is
+        // not a completed empty search. Kind9 has no such angle gate.
+        if(_dispatch && c.RA==0x800351F0 && c.V0!=0 && c.S2==_selected
+            && Describe(m,_selected,out var id,out byte kind) && kind==8)
+            ContainerSelections[id.Index]=2;
     }
     public static void BeforeNotification(CpuContext c, IMemory m)
     {
@@ -191,7 +235,51 @@ public static class InteractionHistory
             // Never infer a pair merely from spatial proximity or shared keys.
             if (c.RA == 0x80035628 && (kind is 0 or 1) && _neighbor != _selected && c.S1 == _neighbor
                 && Describe(m, _neighbor, out _, out byte neighborKind) && neighborKind == 0 && m.ReadU8(_neighbor + 0x20) != 255)
+            {
                 Record(m, _neighbor, Outcome.Locked);
+                // The blocked branch returns before native writes +0x21 links.
+                // Publish only its actual primary/partner association; the mod
+                // may persist that observed fact with its exploration state.
+                if(kind==1 && Describe(m,_selected,out var partnerId,out _)
+                    && Describe(m,_neighbor,out var primaryId,out _) && DoorPaired is { } paired)
+                    foreach(Action<ObjectId,ObjectId> handler in paired.GetInvocationList())
+                        Invoke("door-pair observer",()=>handler(primaryId,partnerId));
+            }
+        }
+    }
+    public static void BeforeUseItem(CpuContext c,IMemory m)
+    {
+        int depth=_keyDepth++;
+        if(depth>=KeyFrames.Length)return;
+        KeyFrames[depth]=null;
+        // Only the original key cases can clear lock/link bytes here. Kind9's
+        // +0x20 is its first item, never a lock. Native keys target kinds0/1/2/8.
+        if(c.A0 is not (53 or 54 or 60 or 74))return;
+        var types=new byte[Count];var locks=new byte[Count];Array.Fill(types,(byte)255);
+        for(uint index=0;index<Count;index++)
+        {
+            uint record=Objects+44*index;
+            if(!Describe(m,record,out _,out byte kind) || kind is not (0 or 1 or 2 or 8))continue;
+            byte value=m.ReadU8(record+0x20);
+            if(value!=c.A0)continue;
+            types[index]=m.ReadU8(record);locks[index]=value;
+        }
+        KeyFrames[depth]=new(m.ReadU8(0x800A078A),types,locks);
+    }
+    public static void AfterUseItem(CpuContext c,IMemory m)
+    {
+        if(_keyDepth==0)return;
+        int depth=--_keyDepth;
+        if(depth>=KeyFrames.Length)return;
+        var capture=KeyFrames[depth];KeyFrames[depth]=null;
+        if(capture==null || capture.Area!=m.ReadU8(0x800A078A))return;
+        for(uint index=0;index<Count;index++)
+        {
+            uint record=Objects+44*index;
+            if(capture.Types[index]==255 || capture.Locks[index]==255 || m.ReadU8(record)!=capture.Types[index]
+                || !Describe(m,record,out _,out byte kind) || kind is not (0 or 1 or 2 or 8)
+                || m.ReadU8(record+0x20)!=255)continue;
+            Record(m,record,Outcome.Unlocked);
         }
     }
     public static void BeforeAction(CpuContext c, IMemory m)
@@ -221,6 +309,9 @@ public static class InteractionHistory
     }
     static void ResetExtensions()
     {
+        _dispatch=false; _selected=_neighbor=_actionRecord=0; _dispatchArea=0;
+        Array.Clear(ContainerSelections);Array.Fill(ContainerTypes,(byte)255);
+        _keyDepth=0;Array.Clear(KeyFrames);
         _loaded.Clear();
         foreach (var (owner, extension) in Extensions.ToArray()) Invoke(owner, extension.Reset);
         if (GameRestored is { } restored)
