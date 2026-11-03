@@ -160,3 +160,32 @@ DoorPaired therefore publishes only the exact primary/partner observed in that
 native blocked branch. A source mod may persist that proven relationship with
 its state, clearing the mate's stale red after a real unlock without guessing
 nearby pairs. Already-opened history remains resolved.
+
+## Hit Feedback's finished textured RGB
+
+Changing `0x80057B58` before texturing is insufficient: a strongly green skin
+can become brown instead of receiving the requested red mix. That source-mod
+path is removed. The game has no final-fragment RGB mix routine, so the mod uses
+the shared renderer API introduced by cde87b2, imported here as fb72419 and
+shared runtime e22da06. ModelInstance.ColourMixRgb/ColourMix feed the world
+shader's final textured/lit/fogged RGB before quantization. Alpha and depth are
+unchanged; a zero default leaves every other model/program unchanged.
+
+The mod brackets this disc's actor submitter `0x8001E9A4` using its actual A0
+record. Only its newly appended retained instances are colored; nested ranges
+are excluded from their parent. Native RGBC/BK/LCM are never modified. Main and
+mirror-list range ownership passes the focused no-game check. Runtime acceptance
+used a loaded type-3/model-2 green textured enemy, actual damage 47->25/max100,
+50% intensity, peak .375, and a 1100ms native envelope at a 5s maximum. Its real
+time tween returned to zero. Controlled held-strength captures additionally
+verified .375 and .1875 final RGB numerically and returned to original green;
+the static surrounding scene stayed unchanged.
+
+Support is GPU world mode 2 with retained model meshes, supported backend and
+Z-buffer enabled. Mode 0 reference, mode 1 capture, disabled retained models,
+renderer verification and individual packet-fallback meshes have no hit flash.
+They retain native colors rather than the incorrect RGBC substitute. Actual
+reference/capture/model-disabled/Z-off captures were inspected. A separate
+controlled native movement matrix crossed the hidden passage with walk-through
+on for every Use/Attack combination and blocked it when walk-through was off;
+no Use/Attack input was issued and the wall stayed undiscovered.
