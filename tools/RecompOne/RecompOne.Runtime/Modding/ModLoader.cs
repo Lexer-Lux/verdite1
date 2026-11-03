@@ -83,7 +83,7 @@ public static class ModLoader
         if (_loaded) return;
         _loaded = true;
 
-        root ??= Path.GetFullPath("mods");
+        root ??= Path.GetFullPath(RecompOne.Runtime.Config.ConfigManager.View.GetString("mods.root", "mods"));
         Root = root;
         _cacheDir = Path.Combine(root, ".cache");
 
