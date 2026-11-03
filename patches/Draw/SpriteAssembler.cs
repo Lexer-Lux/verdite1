@@ -247,6 +247,20 @@ public static class SpriteAssembler
 
         int bias = (short)c.S4;
         float ir0 = Math.Clamp((int)m.ReadU32(c.SP + 0x54u), 0, 4096);
+        bool extendedFog = GpuWorld.Domain == "models" && RenderDistance.FogScale > 1f;
+        if (extendedFog)
+        {
+            // RotTransPers4 stores the last RTPS's IR0 at SP+0x54 and leaves
+            // that corner's unsigned SZ3 in GTE register 19. Re-evaluate only
+            // the retained cue with the stretched native DQA; the read-only
+            // quotient helper uses the same H/SZ3 division without flags.
+            uint quotient = Gte.DepthQuotient(Gte.Read(19));
+            double cue = (RenderDistance.FogDqa((short)Gte.ReadControl(27)) * (double)quotient
+                + (int)Gte.ReadControl(28)) / 4096d;
+            int depthCue = (int)Math.Clamp(Math.Floor(cue), 0d, 4096d);
+            if (c.S3 == 1) depthCue = Math.Min(4096, depthCue + (depthCue >> 1));
+            ir0 = depthCue;
+        }
         var ins = new RetainedScene.ModelInstance
         {
             MeshStart = mesh, MeshCount = 6, MeshAll = 6, Pose = pose, PoseWeight = 0, PoseMorph = false, ViewSpace = true,
@@ -262,7 +276,7 @@ public static class SpriteAssembler
             Rgbc = m.ReadU32(RgbcWord) & 0xFFFFFF,
         };
         RetainedModels.PlaceWorld(ref ins, GpuWorld.ReadView(m));
-        if (GpuWorld.Check) Check(m, ins, x, y, w, h, s0, c.A0, bias, ir0);
+        if (GpuWorld.Check) Check(m, ins, x, y, w, h, s0, c.A0, bias, ir0, !extendedFog);
         if (!add) return true;
         RetainedScene.AddInstance(ins);
         Retained++;
@@ -295,7 +309,7 @@ public static class SpriteAssembler
 
     /// <summary>The corners and the OT index against the packet the writer built, and the
     /// colour the shader evaluates against the packet's NCDS colour.</summary>
-    static void Check(PSMemory m, in RetainedScene.ModelInstance i, short x, short y, short w, short h, uint s0, uint writerSlot, int bias, float ir0)
+    static void Check(PSMemory m, in RetainedScene.ModelInstance i, short x, short y, short w, short h, uint s0, uint writerSlot, int bias, float ir0, bool checkColour)
     {
         float hp = GpuWorld.ProjH, cx = GpuWorld.ProjCx, cy = GpuWorld.ProjCy;
         int[] qx = [x, x + w, x, x + w], qy = [y, y, y + h, y + h];
@@ -315,6 +329,9 @@ public static class SpriteAssembler
         // The OT index from the origin's eye z (SZ over four) plus the bias, as the writer forms it.
         int mine = (Math.Clamp(i.Vtz, 0, 65535) >> 2) + bias;
         if (mine != (int)writerSlot) _otBad++;
+        // Extended retained fog deliberately differs from the native packet's
+        // NCDS colour. Geometry still has a native reference; this colour does not.
+        if (!checkColour) return;
         // The colour the shader evaluates: the NCDS dots (LLM, LCM, BK, RGBC), then the flat cue.
         float[] n = [m.ReadU16(Normal), m.ReadU16(Normal + 2), m.ReadU16(Normal + 4)];
         float[] llm = [i.Llm0, i.Llm1, i.Llm2, i.Llm3, i.Llm4, i.Llm5, i.Llm6, i.Llm7, i.Llm8];

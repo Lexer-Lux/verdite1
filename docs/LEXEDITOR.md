@@ -67,6 +67,14 @@ boundary/random matrix checks passed. The whole 100x100 current-area map is
 already loaded and baked in full32world coordinates; no new sector or collision
 loading is needed. The maximum30 stays inside the65536 view-depth range.
 
+The far audit also found two retained-only paths: translucent models interpreted
+unsigned SZ as signed16 in blend ordering, and billboards kept a flat cue from
+the original IR0. Blend ordering now reads unsigned depth; extended world sprites
+re-evaluate their cue using stretched DQA and the last RTPS's exact read-only
+H/SZ3 quotient, including the native conditional3/2 multiplier. Original-distance
+and nonworld cues remain bit-identical. 62,785 boundary/math invariants passed;
+extended fog intentionally has no native-packet colour-parity claim.
+
 KF1 has one native control setup popup. There is no registered shared onboarding
 Controls page; first-run and rerun open the same Keep/Classic/Modern page. Both
 were rendered, repeated opens left one popup, and bindings/sensitivity/settings

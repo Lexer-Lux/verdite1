@@ -526,7 +526,7 @@ public static class RetainedModels
             // The writer's NCLIP, as the C# writer decides it.
             if (!Facing.Faces(m, a, b, c)) continue;
             // The writer's slot: the mean of the three SZ over four (sum / 3, then >> 2), plus the bias.
-            int z = (short)m.ReadU16(a + 4) + (short)m.ReadU16(b + 4) + (short)m.ReadU16(c + 4);
+            int z = m.ReadU16(a + 4) + m.ReadU16(b + 4) + m.ReadU16(c + 4);
             int slot = (z / 3 >> 2) + bias;
             if (slot < 5) continue;
             RetainedScene.AddBlendFace(slot + BlendKeyBias, mesh.Start + f.Offset, 3, mesh.SemiAbr,

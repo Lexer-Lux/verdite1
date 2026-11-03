@@ -103,8 +103,9 @@ there where it says so.
   `0x80057E68`/`70` are written and spent inline in stage A, with no call between.
 - **Inventory**: one count byte per id at `0x800652A8`, ids 0-79; the shop
   (`func_80021538`) sells up to 99, and the next 80 bytes per shop are its stock.
-  Names at `0x80058E60 + 20·id` are ten u16 glyph codes; an unused id's record
-  opens `FFFF FFFF` (4, 10, 17, 23, 57, 58, 63, 64, 69, 70, 71). A New Game holds
+  Pickup names at `0x80058DC0 + 20·id` are ten u16 glyph codes, copied by
+  `func_800292F8` before its font call at return `0x80029420`. `0x80058E60`
+  is entry8, not the base. An unused name opens `FFFF FFFF`. A New Game holds
   ids 0 and 43. No give routine has been found.
 - **Spells**: records of 20 bytes at `0x8009CE60`, +0 known, u16 +0x10 the MP
   cost. Records 0-3 (4, 5, 8, 12 MP) are cast from the magic menu
