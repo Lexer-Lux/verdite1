@@ -146,7 +146,28 @@ reported locked chest, emptied chest and successful paired door opening.
 The bounded sidecar restored the saved locked state on native load, including
 a load in a new process. At a configured drain of 100% full gauge per second,
 sprint consumed weapon power while MP stayed at 20; disabling the mod restored
-zero drain. Default drain is zero because retail has no sprint stamina pool.
+zero drain. The independent mod's default is now 100% full gauge per second,
+before native weapon-power recovery.
+
+## Auto reload after death
+
+The built-in F1 → Gameplay checkbox **Reload last save after death** defaults
+on and persists an explicit off choice under `kf1.autoreload.enabled`.
+It is a port feature, not a source mod. It uses the last successful native
+save or load slot in the current session (logical slots 1..3). New Game resets
+that selection. Native Dragon King Grass Fruit revival takes priority.
+
+At ordinary respawn, the native reader runs without menu input, followed by
+Stage A's native post-load arm and the original fade back from black. No save,
+changed card metadata or unavailable card leaves ordinary respawn in charge.
+The native menu buffers live on its stack, so the feature captures the successful
+operation's 0x280-byte header and owns fresh header/payload stack storage while
+reloading. It never retains the menu's dead stack pointers.
+
+Silent private-card checks observed native save and load slot tracking, same-
+and cross-floor death reloads, saved position/HP/gold/inventory/equipment,
+default on, saved off after restart, actual Gameplay checkbox, disabled death,
+native revival item consumption and missing/changed-card failure fallback.
 
 These are isolated engine checks, not physical-controller acceptance. Physical
 controller feel, the look of distant geometry and menu usability still need

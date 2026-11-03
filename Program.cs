@@ -40,6 +40,7 @@ Kf1.PadLayout.Configure(Environment.GetEnvironmentVariable("KF1_PAD_LAYOUT"));
 Kf1.PadLayout.Install();
 Kf1.ControlDefaults.Install();
 Kf1.InteractionHistory.Install();
+Kf1.AutoReload.Install();
 Kf1.NativeNotifications.Install();
 
 // libapi's interrupt-callback table, per executable: the table InterruptCallback
