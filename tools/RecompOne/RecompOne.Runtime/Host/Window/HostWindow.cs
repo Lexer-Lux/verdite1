@@ -149,6 +149,7 @@ public static class HostWindow
                 {
                     Size = new Vector2D<int>(1280, 720),
                     Title = title,
+                    IsVisible = Environment.GetEnvironmentVariable("RECOMPONE_HIDDEN") != "1",
                     // 0064. ApplySwapInterval owns the interval; Silk's puts 1 back over it.
                     VSync = false,
                     UpdatesPerSecond = 0,
