@@ -143,9 +143,12 @@ pitch up the velocity R2 raises; whether that looks down), sensitivity, the feel
 
 ## Analog sticks
 
-`patches/Analog.cs`, ported 2026-10-17 from Verdite2's current version, the one
-built to keep the original's speed: a stick at full throw turns, looks and walks
-at the rates the D-pad and L2/R2 do, never faster, and less in proportion. It
+`patches/Analog.cs`, ported 2026-10-17 from Verdite2's version: sensitivity 1
+at full throw turns, looks and walks at the D-pad and L2/R2 rates, and less
+in proportion. Since 2026-11-03, the native yaw and pitch defaults are 3;
+movement stays 1. Existing `kf1.analog.turn` / `kf1.analog.pitch` values and
+environment-set values are read as before, with no migration or binding reset.
+Classic/Modern setup does not change sensitivity. It
 runs in the same hook as the mouse, and on each axis does what the mouse does
 with the game's own branch: for a step inside the clamp it sets the axis's
 button and writes `step ∓ accel` into the velocity, so the held branch lands on
@@ -207,3 +210,39 @@ the Testing tab's "Analog sticks" section, which also shows the sticks.
 mouse); a real pad's leak (the synthetic stick sets no D-pad bits). **Not
 judged by eye**: the pitch direction (stick down is R2's, as the mouse's down
 is), the feel and the defaults.
+
+### Faster-look compensation (2026-11-03)
+
+The yaw sensitivity is a linear multiplier of 28 units per logic tick, with
+4096 units per revolution. A private-card native run measured -7/-14/-21/-28
+then steady -28 at sensitivity 1; at 3 the same seven-unit ramp reaches -84.
+At the current 15 Hz logic rate these are 36.91 and 110.74 degrees/second.
+Pitch's original limit is 10 units/tick, so its requested default becomes 30,
+still through the game's original +/-191 angle clamp. No movement rate changed.
+
+`patches/EnemyTurning.cs` scales the angular step argument of `0x80014A64`
+only for creature callers `0x8002ED58` (sliding), `0x8002ED74` (normal movement)
+and `0x800304A0` (return home). Type records start at `0x8006BD98`, stride 152;
+their byte at +0x1E is the base angular step. Area 1's twelve slots read
+64,64,64,64,32,80,75,75,80,52,0,0. Sliding already passes floor(3*base/2),
+which is scaled after that calculation. Zero remains zero; the game's helper
+still chooses the shortest path and stops at its target. Doors/effects use the
+same helper but their callers are excluded. Scripted attack spins remain native.
+
+The compensation ratio is the effective configured stick yaw multiplier,
+bounded 1..4 (the existing stick overspeed cap); disabled analog/look, disabled
+tank movement, non-finite values or sensitivity <=1 use 1. At default 3 the
+area's normal rates therefore become 192,192,192,192,96,240,225,225,240,156,0,0.
+This preserves each type's steady angular advantage relative to the player.
+It does not track stick deflection, mouse motion, pitch or the optional sustained
+stick acceleration. Saved custom sensitivity determines its own compensation.
+
+Native helper checks covered those type rates, all three enemy sites and four
+excluded sites, sensitivity 1/1.5/3 and the existing fourfold cap, both directions,
+wraparound and target clamping. 2,255 checks passed, including disabled modes,
+unchanged type bytes and Classic/Modern preserving custom sensitivity 1.25/2.5.
+These are numerical checks; the new combat feel has not been visually accepted.
+After a process restart, saved custom yaw/pitch 1.25/2.5 loaded unchanged.
+Live area-1 type-8 creatures then used 100/150 for their original 80/120 normal
+and sliding steps at custom yaw 1.25. Switching the private run to default 3
+produced actual 240/360 steps, and full-down stick still stopped pitch at 191.

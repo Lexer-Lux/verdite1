@@ -110,7 +110,7 @@ stay off: they are choices, not enhancements.
 | `KF1_ANALOG` | on | `0`: the sticks handed back to the pad bindings (`docs/INPUT.md`, "Analog sticks") |
 | `KF1_ANALOG_LOOK`, `KF1_ANALOG_MOVE_ENABLE` | on | `0`: the right stick does not turn and look; the left does not walk |
 | `KF1_TANK` | off | `1`: 3D controls, the left stick walking and turning, the right not read |
-| `KF1_ANALOG_TURN`, `KF1_ANALOG_PITCH`, `KF1_ANALOG_MOVE` | `1.0` | the sticks' sensitivities; 1 is the D-pad's and L2/R2's rate |
+| `KF1_ANALOG_TURN`, `KF1_ANALOG_PITCH`, `KF1_ANALOG_MOVE` | `3.0`, `3.0`, `1.0` | the sticks' sensitivities; 1 is the D-pad's and L2/R2's rate; faster yaw proportionally compensates enemy angular approach steps |
 | `KF1_ANALOG_DEADZONE`, `KF1_ANALOG_MOVEDEADZONE` | `0.15` | the deadzones; the first sets both unless the second is set |
 | `KF1_ANALOG_CURVE`, `KF1_ANALOG_MOVECURVE` | `1.35`, `1.0` | the response curves |
 | `KF1_ANALOG_EASE` | on | `0`: the right stick direct, without the game's ease in and out |

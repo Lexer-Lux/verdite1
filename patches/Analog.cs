@@ -5,7 +5,7 @@ using Rt = RecompOne.Runtime.Runtime;
 namespace Kf1;
 
 /// <summary>
-/// Analog camera and movement: Verdite2's twin sticks, at the original's speed, on
+/// Analog camera and movement: twin sticks on
 /// this game's stage A. See "Analog sticks" in docs/INPUT.md.
 ///
 ///     KF1_ANALOG=0              hands the sticks back (on by default)
@@ -13,7 +13,7 @@ namespace Kf1;
 ///     KF1_ANALOG_MOVE_ENABLE=0  the left stick does not walk or strafe
 ///     KF1_TANK=1                3D (one stick): the left stick walks and turns,
 ///                               the right stick is not read
-///     KF1_ANALOG_TURN/PITCH/MOVE=1.0            sensitivities; 1 is the D-pad's rate
+///     KF1_ANALOG_TURN/PITCH=3.0 MOVE=1.0       sensitivities; 1 is the D-pad's rate
 ///     KF1_ANALOG_DEADZONE/MOVEDEADZONE=0.15     deadzones
 ///     KF1_ANALOG_CURVE/MOVECURVE=1.35/1.0       response curves
 ///     KF1_ANALOG_ACCEL=1 ACCELMAX=2.2 ACCELTIME=0.5   the look ramp (off)
@@ -59,7 +59,7 @@ public static class Analog
 
     // How far past the game's own limit the camera may be driven (a sensitivity
     // above 1, or the look ramp): the no-button branch applies a velocity unclamped.
-    const int OverspeedCap = 4;
+    internal const int OverspeedCap = 4;
 
     public const string OnKey = "kf1.analog.on";
     public const string LookKey = "kf1.analog.look";
@@ -88,8 +88,7 @@ public static class Analog
     public static bool AnalogMove = true;
     public static bool Tank;
 
-    // Off: it turns the view past the D-pad's rate, and the fights are built on how
-    // fast the player can turn. Faster is something a player asks for.
+    // The optional sustained-stick acceleration is separate from sensitivity.
     public static bool LookAccel;
     public static float LookAccelMax = 2.2f;
     public static float LookAccelTime = 0.5f;
@@ -105,8 +104,8 @@ public static class Analog
     // off forward walks straight and a sideways push turns in place.
     const float TankDeadzone = 0.3f;
     const float TankTurnCurve = 2f;
-    public static float TurnSens = 1.0f;
-    public static float PitchSens = 1.0f;
+    public static float TurnSens = 3.0f;
+    public static float PitchSens = 3.0f;
     public static float MoveSens = 1.0f;
 
     public static bool InvertTurn;
