@@ -12,6 +12,15 @@ public sealed class SettingsPopup : Popup
     protected override string TitleKey => "settings.title";
     protected override Vector2 Size => new(780f, 500f);
 
+    /// <summary>Open the existing settings window at a registered section.</summary>
+    public void OpenSection(string sectionId)
+    {
+        if (!SettingsRegistry.Sections.Any(section => section.Id == sectionId))
+            throw new ArgumentException("Unknown settings section", nameof(sectionId));
+        _selectedId = sectionId;
+        Open();
+    }
+
     protected override void DrawContent()
     {
         var sections = SettingsRegistry.Sections;

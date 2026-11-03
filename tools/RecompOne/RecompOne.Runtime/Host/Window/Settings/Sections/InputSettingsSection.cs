@@ -39,6 +39,7 @@ internal sealed class InputSettingsSection : ISettingsSection
 
     public void Draw()
     {
+        SettingsRegistry.DrawSlot("input.profiles");
         DrawDeviceSelector();
         ImGui.Spacing();
         DrawPadSelector();
