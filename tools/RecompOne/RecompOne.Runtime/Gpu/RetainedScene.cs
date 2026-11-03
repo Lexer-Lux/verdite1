@@ -980,6 +980,12 @@ public static class RetainedScene
         /// bias wraps the table's unsigned test, so it has a near end too.</summary>
         public float Near;
         public uint Rgbc, Material;
+        /// <summary>Optional RGB mix after texture, lighting and fog, before output
+        /// quantization. Low24bits are target R/G/B; strength0 retains the original
+        /// colour. Captured per instance, including mirror copies; never changes
+        /// texture holes, alpha, depth, materials or the normal/shadow pass.</summary>
+        public uint ColourMixRgb;
+        public float ColourMix;
         /// <summary>Where the vertices come from: 0, the frame's <see cref="Frame.Verts"/>
         /// at <see cref="VertBase"/>; otherwise one past the first texel in
         /// <see cref="PoseStore"/>, a rigid model's vertices, or with

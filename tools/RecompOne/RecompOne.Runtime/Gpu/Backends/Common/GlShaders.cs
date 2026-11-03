@@ -2554,7 +2554,12 @@ internal static class GlShaders
         }
 
         uniform float uTrueColor;
+        // A retained model's optional final RGB mix. Other programs leave it0;
+        // the world program clears it when leaving its instance draw range.
+        uniform vec4 uModelColourMix;
         vec3 quant5(ivec3 c8) {
+            if (uModelColourMix.a > 0.0)
+                c8 = ivec3(floor(mix(vec3(clamp(c8, 0, 255)), uModelColourMix.rgb * 255.0, uModelColourMix.a) + 0.5));
             // True color: keep all eight bits, so the smooth shaded gradient is not
             // banded down to 32 levels. Dither is pointless here and skipped — the
             // RGBA8 target has nothing to dither into.

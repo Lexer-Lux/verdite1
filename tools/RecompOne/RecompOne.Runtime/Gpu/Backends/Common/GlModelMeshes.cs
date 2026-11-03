@@ -46,6 +46,7 @@ public sealed partial class GlCore
     int _uwModelKeep = -1, _uwnModelKeep = -1;
     // 0103. RetainedScene.ModelNearClip, per program.
     int _uwModelClip = -1, _uwnModelClip = -1;
+    int _uwModelColourMix = -1;
     // The view-space placement (the arm), per program: uModelView, then the three rows and T.
     readonly int[] _uwView = [-1, -1, -1, -1, -1], _uwnView = [-1, -1, -1, -1, -1];
     static readonly string[] ViewNames = ["uModelView", "uModelVR0", "uModelVR1", "uModelVR2", "uModelVT"];
@@ -59,6 +60,7 @@ public sealed partial class GlCore
         _uwModelRgbc = L("uModelRgbc"); _uwModelMat = L("uModelMat"); _uwModelGteC = L("uModelGteC");
         _uwModelPose = L("uModelPose"); _uwModelPoseW = L("uModelPoseW"); _uwModelSky = L("uModelSky");
         _uwModelTile = L("uModelTile"); _uwModelKeep = L("uModelKeep"); _uwModelClip = L("uModelClip");
+        _uwModelColourMix = L("uModelColourMix");
         for (int i = 0; i < ViewNames.Length; i++) _uwView[i] = L(ViewNames[i]);
         _gl.UseProgram(_progWorld);
         if (_uwModelKeep >= 0) _gl.Uniform1(_uwModelKeep, 1f);
@@ -66,6 +68,7 @@ public sealed partial class GlCore
         if (_uwModelTile >= 0) _gl.Uniform1(_uwModelTile, 0);
         if (_uwView[0] >= 0) _gl.Uniform1(_uwView[0], 0);
         if (_uwModel >= 0) _gl.Uniform1(_uwModel, 0);
+        if (_uwModelColourMix >= 0) _gl.Uniform4(_uwModelColourMix, 0f, 0f, 0f, 0f);
         int u = L("uModelVerts");
         if (u >= 0) _gl.Uniform1(u, ModelVertsUnit);
         u = L("uModelPoses");
@@ -296,6 +299,8 @@ public sealed partial class GlCore
             if (_uwModelTile >= 0) _gl.Uniform1(_uwModelTile, 0);
             if (_uwMipIndirect >= 0) _gl.Uniform1(_uwMipIndirect, 0);
             _gl.Uniform1(_uwModel, 0);
+            // The same world program draws the map and other geometry next.
+            if (_uwModelColourMix >= 0) _gl.Uniform4(_uwModelColourMix, 0f, 0f, 0f, 0f);
         }
         else
         {
@@ -360,6 +365,12 @@ public sealed partial class GlCore
         if (_uwModelCue >= 0) _gl.Uniform3(_uwModelCue, m.Dqa, m.Dqb, m.Curve);
         if (_uwModelRgbc >= 0) _gl.Uniform1(_uwModelRgbc, m.Rgbc);
         if (_uwModelMat >= 0) _gl.Uniform1(_uwModelMat, m.Material);
+        if (_uwModelColourMix >= 0)
+        {
+            float mix = float.IsFinite(m.ColourMix) ? Math.Clamp(m.ColourMix, 0f, 1f) : 0f;
+            _gl.Uniform4(_uwModelColourMix, (m.ColourMixRgb & 255u) / 255f,
+                ((m.ColourMixRgb >> 8) & 255u) / 255f, ((m.ColourMixRgb >> 16) & 255u) / 255f, mix);
+        }
         if (_uwModelKeep >= 0) _gl.Uniform1(_uwModelKeep, 1f - Math.Clamp(m.FadeOut, 0f, 1f));
         if (_uwBk >= 0) _gl.Uniform3(_uwBk, m.Bk0, m.Bk1, m.Bk2);
         if (_uwLcmR >= 0) _gl.Uniform3(_uwLcmR, m.L0, m.L1, m.L2);
