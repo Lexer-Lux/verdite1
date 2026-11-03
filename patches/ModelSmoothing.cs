@@ -46,19 +46,19 @@ public static class ModelSmoothing
     public static bool ProbeOn { get => _probe; set => _probe = value; }
 
     /// <summary>One table the walk func_8001F218 draws, through its own submitter.</summary>
-    sealed record Table(string Name, uint Submit, uint Base, int Stride, int Count,
+    sealed record Table(string Name, uint Submit, uint PlacementSite, uint Base, int Stride, int Count,
                         uint Pos, uint Rot, int Angles, Func<IMemory, uint, uint> Identity);
 
     static readonly Table[] Tables =
     [
         // Interaction objects (pickups, doors, props): stage F moves their Y and angles.
-        new("interaction", 0x8001EBB8, 0x8006EDE0, 44, 190, 0x08, 0x18, 2, (m, r) => m.ReadU8(r)),
-        new("object", 0x8001E9A4, 0x8006C4B8, 72, 128, 0x1C, 0x2C, 2, (m, r) => m.ReadU8(r + 1)),
+        new("interaction", 0x8001EBB8, 0x8001EC40, 0x8006EDE0, 44, 190, 0x08, 0x18, 2, (m, r) => m.ReadU8(r)),
+        new("object", 0x8001E9A4, 0x8001EA2C, 0x8006C4B8, 72, 128, 0x1C, 0x2C, 2, (m, r) => m.ReadU8(r + 1)),
         // The counted list (u16 count at 0x80095090): flipbook sprites, cel at +0x14.
-        new("list", 0x8001ED90, 0x80095098, 24, 256, 0x04, 0, 0, (m, r) => m.ReadU16(r) | (uint)m.ReadU8(r + 2) << 16),
-        new("creature", 0x8001EEDC, 0x8009D040, 60, 48, 0x0C, 0x1C, 3, (m, r) => m.ReadU8(r + 3) | (uint)m.ReadU8(r + 2) << 8),
+        new("list", 0x8001ED90, 0x8001EE14, 0x80095098, 24, 256, 0x04, 0, 0, (m, r) => m.ReadU16(r) | (uint)m.ReadU8(r + 2) << 16),
+        new("creature", 0x8001EEDC, 0x8001EF78, 0x8009D040, 60, 48, 0x0C, 0x1C, 3, (m, r) => m.ReadU8(r + 3) | (uint)m.ReadU8(r + 2) << 8),
         // The people stage H runs: SVECTOR at +0x34 through RotMatrix.
-        new("person", 0x8001F0C4, 0x8009DB88, 68, 8, 0x24, 0x34, 3, (m, r) => m.ReadU8(r + 2) | (uint)m.ReadU8(r + 1) << 8),
+        new("person", 0x8001F0C4, 0x8001F148, 0x8009DB88, 68, 8, 0x24, 0x34, 3, (m, r) => m.ReadU8(r + 2) | (uint)m.ReadU8(r + 1) << 8),
     ];
 
     const int ListTable = 2;
@@ -162,6 +162,7 @@ public static class ModelSmoothing
         if (Hook(Renderer, nameof(BeforeRenderer), nameof(AfterRenderer)) == null) return false;
         if (Hook(Pose, nameof(BeforePose), nameof(AfterPose)) == null) return false;
         if (Hook(GteMime, nameof(BeforeMime), null) == null) return false;
+        if (Hook(0x8004DADC, null, nameof(AfterPlacement)) == null) return false;
         if (Hook(ArmSubmit, nameof(BeforeArm), nameof(AfterSubmit)) == null) return false;
         foreach (var t in Tables)
             if (Hook(t.Submit, nameof(HookedBefore), nameof(HookedAfter)) == null) return false;
@@ -185,9 +186,9 @@ public static class ModelSmoothing
 
     public static void BeforeSubmit(CpuContext c, IMemory m)
     {
-        _inSlot = -1;
+        _inSlot = _inTable = -1;
+        _inRec = 0;
         _wrote = _heldCel = false;
-        if (!FramePacing.Enabled) return;
         // The submitter is told by its record: each table's records lie in their own range.
         uint r = c.A0;
         int ti = -1;
@@ -202,31 +203,71 @@ public static class ModelSmoothing
         int i = TableBase[ti] + slot;
         _inSlot = i; _inTable = ti; _inRec = r;
 
+        // Retained placement needs the current record even when interpolation
+        // and frame pacing are disabled. Only the carry itself depends on pacing.
+        if (!FramePacing.Enabled) return;
         if (ti == ListTable) HoldCel(m, r, slot);
         if (!_mainDraw) return;
         Carry(m, table, ti, i, r);
+    }
+
+    /// <summary>
+    /// Undo only a world submitter's relative-position wrap in its render-stack
+    /// VECTOR, before it becomes the model translation. The scoped record and
+    /// exact call site exclude gameplay, the arm and menus; GTE registers stay as
+    /// the native RotTrans left them. Position offsets have one owner, above.
+    /// </summary>
+    public static void AfterPlacement(CpuContext c, IMemory m)
+    {
+        if (!GpuWorld.Drawing || _inTable < 0 || _inTable >= Tables.Length) return;
+        var table = Tables[_inTable];
+        if (c.RA != table.PlacementSite) return;
+        uint position = _inRec + table.Pos;
+        long x = (long)(int)m.ReadU32(position) - (int)m.ReadU32(CameraBlock.Position);
+        long y = (long)(int)m.ReadU32(position + 4) - (int)m.ReadU32(CameraBlock.Position + 4);
+        long z = (long)(int)m.ReadU32(position + 8) - (int)m.ReadU32(CameraBlock.Position + 8);
+        long dx = x - unchecked((short)x), dy = y - unchecked((short)y), dz = z - unchecked((short)z);
+        if ((dx | dy | dz) == 0) return;
+        // A wrap delta is a multiple of 65536. Rotating it with the camera's
+        // original 4.12 coefficients gives exact integers, with no rounding change
+        // to RotTrans's output. Only its three frame-local output words change.
+        static int Row(IMemory memory, uint row, long x, long y, long z)
+            => unchecked((int)(((long)(short)memory.ReadU16(row) * x + (long)(short)memory.ReadU16(row + 2) * y
+                + (long)(short)memory.ReadU16(row + 4) * z) >> 12));
+        uint rotation = CameraBlock.ViewMatrix;
+        m.WriteU32(c.A1, unchecked((uint)((int)m.ReadU32(c.A1) + Row(m, rotation, dx, dy, dz))));
+        m.WriteU32(c.A1 + 4, unchecked((uint)((int)m.ReadU32(c.A1 + 4) + Row(m, rotation + 6, dx, dy, dz))));
+        m.WriteU32(c.A1 + 8, unchecked((uint)((int)m.ReadU32(c.A1 + 8) + Row(m, rotation + 12, dx, dy, dz))));
     }
 
     public static void BeforeArm(CpuContext c, IMemory m)
     {
         _wrote = _heldCel = false;
         _inSlot = ArmSlot; _inTable = -1;
+        _inRec = 0;
     }
 
     public static void AfterSubmit(CpuContext c, IMemory m)
     {
-        if (_wrote && _inTable >= 0)
+        try
         {
-            var t = Tables[_inTable];
-            uint r = _inRec;
-            m.WriteU32(r + t.Pos, (uint)_savedX); m.WriteU32(r + t.Pos + 4, (uint)_savedY); m.WriteU32(r + t.Pos + 8, (uint)_savedZ);
-            if (t.Angles > 0) m.WriteU16(r + t.Rot, (ushort)_savedA);
-            if (t.Angles > 1) m.WriteU16(r + t.Rot + 2, (ushort)_savedB);
-            if (t.Angles > 2) m.WriteU16(r + t.Rot + 4, (ushort)_savedC);
+            if (_wrote && _inTable >= 0)
+            {
+                var t = Tables[_inTable];
+                uint r = _inRec;
+                m.WriteU32(r + t.Pos, (uint)_savedX); m.WriteU32(r + t.Pos + 4, (uint)_savedY); m.WriteU32(r + t.Pos + 8, (uint)_savedZ);
+                if (t.Angles > 0) m.WriteU16(r + t.Rot, (ushort)_savedA);
+                if (t.Angles > 1) m.WriteU16(r + t.Rot + 2, (ushort)_savedB);
+                if (t.Angles > 2) m.WriteU16(r + t.Rot + 4, (ushort)_savedC);
+            }
+            if (_heldCel) m.WriteU8(_inRec + ListCel, _savedCel);
         }
-        if (_heldCel) m.WriteU8(_inRec + ListCel, _savedCel);
-        _wrote = _heldCel = false;
-        _inSlot = _inTable = -1;
+        finally
+        {
+            _wrote = _heldCel = false;
+            _inSlot = _inTable = -1;
+            _inRec = 0;
+        }
     }
 
     /// <summary>The list's submitter steps its cel on every draw; under pacing the

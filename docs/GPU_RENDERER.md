@@ -1056,8 +1056,13 @@ the route.
 **The fade.** Runtime `0089`'s `DistanceFade`, ending at the render distance, or
 at the game's edge when the distance is off.
 
-Since the fog is black by 9.17 cells, a distance past that adds only black at
-4:3. What it buys is the wide aspect's side cells, and the fade's softer edge.
+The original implementation left fog black by 9.17 cells, so a greater distance
+added only black at 4:3. Corrected 2026-11-03: selected extended distance stretches
+the retained map/model DQA to move black to the selected edge; distance0 keeps
+native fog. The static cache includes the scale. Fog mode and geometry fade
+remain separate. Full-coordinate model placement is corrected before projection
+at each world submitter's RotTrans call, avoiding signed16 relative-position wrap.
+See the measured 15/30 comparison in docs/LEXEDITOR.md.
 
 ## Water: none to classify (Step 5, 2026-10-16)
 

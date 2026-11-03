@@ -20,8 +20,8 @@ namespace Kf1;
 /// draw at 4:3. A wider cone sees cells beside the eye no 14x14 stencil holds (1.6
 /// cells away at 16:9); those are the render distance's to fill, not the fade's.</para>
 ///
-/// <para>The game's fog is black by 9.17 cells in every area (docs/GPU_RENDERER.md), so
-/// past that the render distance adds only black.</para>
+/// <para>The original fog is black at 18,333 units. Extended views stretch that
+/// same curve to the selected distance; the independent geometry fade is unchanged.</para>
 ///
 /// <para>**Render distance** (<see cref="Cells"/>): after the map walk, every cell whose
 /// nearest point lies within the distance and whose box meets the view's horizontal
@@ -49,6 +49,14 @@ public static class RenderDistance
     const int Stride = 0xCC, Count = 16, Grid = 100, Box = 14;
     const float Cell = 2000f;
     public const int MaxCells = 30, MaxFade = 8;
+
+    // Native normal-play GTE cue: DQA=-17600, DQB=20971520, H=200;
+    // map/model writers double IR0, so black begins at IR0=2048.
+    // Scaling only the retained cue's DQA stretches its depth, while preserving
+    // the game's dynamic dimming, fog mode, colours and all guest GTE state.
+    public const float OriginalFogBlack = -17600f * 200f * 65536f / (2048f * 4096f - 20971520f);
+    public static float FogScale => Math.Max(1f, Cells * Cell / OriginalFogBlack);
+    public static float FogDqa(float nativeDqa) => nativeDqa * FogScale;
 
     /// <summary>The distance drawn to, in cells; 0 is the game's own.</summary>
     public static float Cells { get; private set; }

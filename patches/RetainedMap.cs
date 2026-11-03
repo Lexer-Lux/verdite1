@@ -161,6 +161,9 @@ public static class RetainedMap
         ulong hGrid = h;
         var srcBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<Source>(in src));
         foreach (byte b in srcBytes) h = (h ^ b) * 0x100000001B3UL;
+        // A changed view distance changes the retained cue, not the guest cue.
+        // Include it in the static-map key so cached maps cannot keep old fog.
+        h = (h ^ BitConverter.SingleToUInt32Bits(RenderDistance.FogScale)) * 0x100000001B3UL;
         if (Ready && h == _built) return;
         // A changing source (the fog fading at an area's exit, the death's dimming, a
         // step a tick) is left to the packets until it holds for ten walks and, under
@@ -447,7 +450,7 @@ public static class RetainedMap
                 {
                     X = w.X, Y = w.Y, Z = w.Z, R = c.R, G = c.G, B = c.B,
                     Clut = face.Clut, Texpage = face.Tpage, U = uv[k] & 255, V = uv[k] >> 8,
-                    Dqa = src.Dqa, Dqb = src.Dqb + 800f * 4096f, Curve = 1,
+                    Dqa = RenderDistance.FogDqa(src.Dqa), Dqb = src.Dqb + 800f * 4096f, Curve = 1,
                     Rect = (uint)(u0 | v0 << 8 | u1 << 16 | v1 << 24),
                     Flags = RetainedScene.FlagRect | half, Rgbc = src.Rgbc,
                 };

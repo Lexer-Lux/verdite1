@@ -375,7 +375,7 @@ public static class RetainedModels
             Llm5 = Hi(10) / 4096f, Llm6 = Lo(11) / 4096f, Llm7 = Hi(11) / 4096f, Llm8 = Lo(12) / 4096f,
             Bk0 = Ctl(13), Bk1 = Ctl(14), Bk2 = Ctl(15),
             L0 = Lo(16), L1 = Hi(16), L2 = Lo(17), L3 = Hi(17), L4 = Lo(18), L5 = Hi(18), L6 = Lo(19), L7 = Hi(19), L8 = Lo(20),
-            Dqa = (short)Gte.ReadControl(27), Dqb = (int)Gte.ReadControl(28) + 800f * 4096f, Curve = 1,
+            Dqa = RenderDistance.FogDqa((short)Gte.ReadControl(27)), Dqb = (int)Gte.ReadControl(28) + 800f * 4096f, Curve = 1,
             // The writer drops a face whose mean SZ / 4 plus the bias is under 5; nothing far.
             Near = 5 - bias, Far = float.MaxValue,
             Rgbc = m.ReadU32(cached ? CachedRgbc : TexturedRgbc) & 0xFFFFFF,

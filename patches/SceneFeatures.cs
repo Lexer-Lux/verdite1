@@ -232,7 +232,7 @@ public static class SceneFeatures
             RenderDistance.SetCells(Math.Clamp(reach, 8, RenderDistance.MaxCells));
             KeepFloat(RenderKey, RenderDistance.Cells);
         }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("8 to 30. Extends the retained world's reach; the original stencil remains. The game's fog is black beyond about 9.17.");
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("8 to 30. Extends the retained world's reach and its fog range. Zero restores the original reach and fog.");
         ImGui.EndDisabled();
 
         bool fade = RenderDistance.FadeCells > 0;
@@ -272,7 +272,8 @@ public static class SceneFeatures
             fadeBand = RenderDistance.FadeCells, enhancementDistance = GteDepth.PlainDepth / Cell,
             fog = Fog, maximum = RenderDistance.MaxCells, renderer = GpuWorld.Setting,
             frameEdge = frame?.FadeEdge, frameBand = frame?.FadeBand,
-            gatedCells = frame?.MainHalves.Count(value => value != 0)
+            gatedCells = frame?.MainHalves.Count(value => value != 0),
+            fogScale = RenderDistance.FogScale, fogBlack = RenderDistance.OriginalFogBlack * RenderDistance.FogScale
         });
     }
 }

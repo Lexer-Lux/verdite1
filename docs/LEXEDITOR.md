@@ -21,13 +21,15 @@ existing three-cell band. The separate fade-band control remains available.
 
 - **View distance** extends the retained map and models past the original
   stencil. The supported extended range is 8–30 cells; 0 selects the original
-  stencil. Original stencil geometry is retained, so this is not a way to
+  stencil and original fog. Extended values stretch the retained fog curve to
+  the selected edge. Original stencil geometry is retained, so this is not a way to
   shrink the original world's reach.
 - **Smooth distance fade** applies the renderer's ordered distance fade to
   geometry at that edge. It works independently at the original reach too.
 - **Fog** chooses where the original game's darkening is evaluated: corners,
   pixel depth or radial distance. It is not the geometry fade toggle. Original
-  fog becomes black at about 9.17 cells, so geometry beyond that remains dark.
+  fog becomes black at about 9.17 cells; extended view distance now stretches
+  that curve so additional geometry is actually visible.
 - **Enhancement distance** limits per-pixel lighting and other enhancements.
   It does not select which world cells are drawn.
 
@@ -39,6 +41,36 @@ With the optional diagnostic channel enabled, `distance` reports both the
 settings and the current retained frame's gate and fade band. `distance 24 0`
 sets and saves view distance 24 with smooth fading off. Invalid distances are
 rejected. This diagnostic server is opt-in, bound to loopback, as before.
+
+### Visible range correction (2026-11-03)
+
+The previous build accepted 30 and submitted more cells but retained original
+black fog. At matched camera (55000,-25000,35000), pitch512/yaw0, 15 and 30
+therefore produced identical visible output despite gates300/851. The corrected
+retained map and world-model cue multiplies DQA by max(1,cells*2000/18333.333),
+derived from native DQA-17600/DQB20971520/H200 and doubled IR0. Black is now at
+30000/60000 for 15/30; native dynamic dimming, fog mode and independent geometry
+fade remain intact. The map-cache key includes this scale. Zero restores native fog.
+
+Model placement also truncated full relative positions to signed16 before
+RotTrans. A scoped post-hook on 8004DADC corrects only the three frame-local
+render translation words, using existing ModelSmoothing table identities. It
+covers interactions, actors, flipbook sprites, effects and people before any
+vertex projection, including translucent paths. Guest records and GTE registers
+are unchanged. Exact caller gates exclude the arm, menu and gameplay calls.
+
+The corrected candidate visibly adds rooms/structures at30; gates remain300/851
+and both fade states were captured. Actual native InputFloat edited15->24->30,
+saved30 with fadeoff. Twelve sampled far sprite/person placements matched their
+full-coordinate fixed-point reference (the old build wrapped them); 10045
+boundary/random matrix checks passed. The whole 100x100 current-area map is
+already loaded and baked in full32world coordinates; no new sector or collision
+loading is needed. The maximum30 stays inside the65536 view-depth range.
+
+KF1 has one native control setup popup. There is no registered shared onboarding
+Controls page; first-run and rerun open the same Keep/Classic/Modern page. Both
+were rendered, repeated opens left one popup, and bindings/sensitivity/settings
+bytes stayed unchanged. No duplicate-page code path exists to remove here.
 
 ## Controls
 

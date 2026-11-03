@@ -34,8 +34,8 @@ public static class ModelWalk
     {
         _sent = true;
         ModelSmoothing.BeforeSubmit(c, mem);
-        submitter(c, mem);
-        ModelSmoothing.AfterSubmit(c, mem);
+        try { submitter(c, mem); }
+        finally { ModelSmoothing.AfterSubmit(c, mem); }
     }
 
     static bool _sent;
