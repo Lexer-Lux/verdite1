@@ -62,7 +62,7 @@ public static class MouseLook
     /// <summary>Stage A's pad word: the mouse and the sticks spent into it (Analog).</summary>
     public static void AfterPadRead(CpuContext c, IMemory m)
     {
-        if (c.RA != StageASite) return;
+        if (c.RA != StageASite) { c.V0 = ControlDefaults.ReadModal((ushort)c.V0); return; }
         Memory = m;
         c.V0 = Analog.Tick(m, ControlDefaults.Read(m, (ushort)c.V0));
     }

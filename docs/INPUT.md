@@ -246,3 +246,22 @@ After a process restart, saved custom yaw/pitch 1.25/2.5 loaded unchanged.
 Live area-1 type-8 creatures then used 100/150 for their original 80/120 normal
 and sliding steps at custom yaw 1.25. Switching the private run to default 3
 produced actual 240/360 steps, and full-down stick still stopped pitch at 191.
+
+## Inline profiles and held-run menu input
+
+ControlDefaults draws Keep/Classic/Modern in the existing Input section through
+the shared `input.profiles` slot. OpenSetup selects that section of the one
+SettingsPopup. Applying is explicit; custom replacement needs its checkbox.
+There is no separate ControlSetup popup.
+
+The original menu entry is `0x80036E38`. Its modal pad reads ignore the unused
+R3 bit and the back bit inherited from a still-held shared Run gesture.
+Independent keyboard menu and controller Start bindings remain usable while
+Run stays held. Once released, a new back press works normally. Native gameplay
+reads still report RequestedRun; RunTick additionally reports whether input was
+actually sampled, so skipped render frames cannot unlatch an exhausted sprint.
+
+Actual mapper checks used Shift/W and Shift/Tab through IKeyboard, and an SDL
+virtual gamepad's B/left-stick and B/Start. Exhaustion, held recovery, fresh
+release, menu, native load, death/respawn, initialization and disable/re-enable
+passed. These checks do not establish physical-device delivery or combat feel.

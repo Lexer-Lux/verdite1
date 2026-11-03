@@ -97,6 +97,18 @@ public sealed class AutoReload : ISettingsSection
         // Retail's Dragon King Grass Fruit revival has priority, exactly as in the original.
         if (m.ReadU8(0x8009DDB7) == 1 && m.ReadU8(0x800652D7) != 0) return true;
 
+        return !TryReloadLastSave(c, m);
+    }
+
+    public static bool HasLastSave => LastSlot > 0 && _header != null;
+
+    /// <summary>The same read-only native load for an explicit revival-choice mod.
+    /// It does not depend on the automatic-reload checkbox and never saves.</summary>
+    public static bool TryReloadLastSave(CpuContext c, IMemory m)
+    {
+        if (!HasLastSave || AgentBeacon.Overlay != "game" || m.ReadU8(0x800A0822) != 255
+            || m.ReadU16(0x800A0792) != 0) return false;
+
         var saved = c.Snapshot();
         uint oldHeader = m.ReadU32(0x800668D8), oldPayload = m.ReadU32(0x800668E0);
         byte oldCard = m.ReadU8(0x80056036);
@@ -106,7 +118,7 @@ public sealed class AutoReload : ISettingsSection
             // Own that storage for the entire reader call, below the interrupted frame.
             c.SP -= 0x3000;
             uint header = c.SP + 0x10, payload = c.SP + 0x290;
-            for (uint i = 0; i < _header.Length; i++) m.WriteU8(header + i, _header[i]);
+            for (uint i = 0; i < _header!.Length; i++) m.WriteU8(header + i, _header[i]);
             m.WriteU32(0x800668D8, header);
             m.WriteU32(0x800668E0, payload);
             m.WriteU8(0x80056036, _card);
@@ -117,7 +129,7 @@ public sealed class AutoReload : ISettingsSection
             if (c.V0 != 1)
             {
                 Console.Error.WriteLine($"[KF1] auto reload: native reader returned {c.V0}; continuing ordinary respawn");
-                return true;
+                return false;
             }
 
             // Stage A's native "menu loaded a save" arm, 0x800189A4..0x80018A04.
@@ -144,7 +156,7 @@ public sealed class AutoReload : ISettingsSection
             m.WriteU32(0x800A0828, m.ReadU32(0x800A0834) - 1500);
             Reloads++;
             Console.WriteLine($"[KF1] auto reload: native slot {LastSlot}");
-            return false;
+            return true;
         }
         finally
         {
