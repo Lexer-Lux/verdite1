@@ -88,7 +88,8 @@ First launch and **Run control setup again** in F1 → Testing offer:
 - **Classic Controls**, the exact baseline upstream port bindings.
 - **Modern Controls**: RT/RB attack, LT/LB cast, Cross/E interact, and
   Circle/Left Shift held run. Original Square attack, Triangle/Q item or spell,
-  Select/Tab menu, and menu confirm/back actions stay available.
+  Select/Tab menu, and menu confirm/back actions stay available. Physical Start
+  opens the menu and backs out, matching KF2 Modern; it does not hold Run.
 
 Both frontends read `content/config/controls.json`; there is no second preset
 table in Lexeditor. Applying a preset replaces custom bindings only after an

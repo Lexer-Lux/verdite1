@@ -11,8 +11,8 @@
   "modern": {
     "Keys": {"Cross":"Tab","Circle":"E","Square":"Q","Triangle":"Space","L1":"A","R1":"D","L2":"","R2":"","L3":"","R3":"ShiftLeft","Start":"Enter","Select":"ShiftRight","Up":"W","Down":"S","Left":"Left","Right":"Right"},
     "Keys2": {"Cross":"","Circle":"F","Square":"","Triangle":"","L1":"","R1":"","L2":"","R2":"","L3":"","R3":"","Start":"","Select":"","Up":"","Down":"","Left":"","Right":""},
-    "Pad": {"Cross":[0],"Circle":[1],"Square":[2,10,101],"Triangle":[3,9,100],"L1":[],"R1":[],"L2":[],"R2":[],"L3":[7],"R3":[1],"Start":[6],"Select":[4],"Up":[11,104],"Down":[12,105],"Left":[13,102],"Right":[14,103],"LeftStickX":0,"LeftStickY":1,"RightStickX":2,"RightStickY":3},
-    "PadAnalog": {"Cross":[0],"Circle":[1],"Square":[2,10,101],"Triangle":[3,9,100],"L1":[],"R1":[],"L2":[],"R2":[],"L3":[7],"R3":[1],"Start":[6],"Select":[4],"Up":[11],"Down":[12],"Left":[13],"Right":[14],"LeftStickX":0,"LeftStickY":1,"RightStickX":2,"RightStickY":3},
+    "Pad": {"Cross":[0],"Circle":[1,6],"Square":[2,10,101],"Triangle":[3,9,100],"L1":[],"R1":[],"L2":[],"R2":[],"L3":[7],"R3":[1],"Start":[],"Select":[4],"Up":[11,104],"Down":[12,105],"Left":[13,102],"Right":[14,103],"LeftStickX":0,"LeftStickY":1,"RightStickX":2,"RightStickY":3},
+    "PadAnalog": {"Cross":[0],"Circle":[1,6],"Square":[2,10,101],"Triangle":[3,9,100],"L1":[],"R1":[],"L2":[],"R2":[],"L3":[7],"R3":[1],"Start":[],"Select":[4],"Up":[11],"Down":[12],"Left":[13],"Right":[14],"LeftStickX":0,"LeftStickY":1,"RightStickX":2,"RightStickY":3},
     "view": {"kf1.pad.layout": "1", "kf1.controls.holdrun": "1"}
   }
 }
